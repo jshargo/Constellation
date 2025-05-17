@@ -1,0 +1,13 @@
+{
+    "call_id": "uuid-from-vapi",
+    "timestamp": "2025-05-16T19:07:22-05:00",
+    "speaker_turns": [
+      { "speaker": "patient", "text": "Can you schedule an appointment for me? I have knee pain." },
+      { "speaker": "system",  "text": "Sure, what time works?" },
+      { "speaker": "patient", "text": "Around 10 A.M. if possible." }
+    ],
+    "metadata": {
+      "caller_number": "+1-312-555-0119",  
+      "clinic_id": "chicago-main"
+    }
+}
