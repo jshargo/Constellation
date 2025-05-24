@@ -1,4 +1,3 @@
-# google_calendar_tool.py
 import os
 from dotenv import load_dotenv
 from pydantic import BaseModel, Field
@@ -17,7 +16,7 @@ load_dotenv()
 GOOGLE_CLIENT_SECRET_PATH = os.getenv("GOOGLE_CLIENT_SECRET_FILE", "client_secret.json")
 CALENDAR_API_NAME = 'calendar'
 CALENDAR_API_VERSION = 'v3'
-CALENDAR_SCOPES = ['https://www.googleapis.com/auth/calendar'] # Ensure this scope allows edits/deletions
+CALENDAR_SCOPES = ['https://www.googleapis.com/auth/calendar'] 
 
 # --- Utility Function for Date Parsing (enhanced) ---
 def parse_datetime_for_api(datetime_str: str, default_time: Optional[time] = None, prefer_future: bool = True) -> Optional[str]:
@@ -26,17 +25,12 @@ def parse_datetime_for_api(datetime_str: str, default_time: Optional[time] = Non
     If only a date is provided, attaches a default_time (e.g., start/end of day).
     """
     try:
-        # Try to parse with dateutil which is flexible
-        # The 'tzinfos' argument helps resolve ambiguous timezone abbreviations if any.
-        # Using system's local timezone as a default.
         local_tz = gettz()
         dt = dateutil.parser.parse(datetime_str, tzinfos={"local": local_tz})
 
-        # If parsed datetime is naive (no timezone info), assume local timezone.
         if dt.tzinfo is None or dt.tzinfo.utcoffset(dt) is None:
             dt = dt.replace(tzinfo=local_tz)
         
-        # If only date was parsed (time is midnight) and a default_time is given, apply it.
         if dt.time() == time(0,0,0) and default_time:
             dt = datetime.combine(dt.date(), default_time, tzinfo=dt.tzinfo)
 
@@ -69,7 +63,7 @@ def create_google_calendar_event(details: CalendarEventInput) -> str:
     if not start_iso:
         return f"Could not understand the start time: '{details.start_time_str}'. Please provide a clearer date and time (e.g., 'June 5th 2025 at 2pm' or '2025-06-05T14:00:00')."
 
-    start_dt = dateutil.parser.isoparse(start_iso) # Convert back to datetime for calculations
+    start_dt = dateutil.parser.isoparse(start_iso)
 
     if details.end_time_str:
         end_iso = parse_datetime_for_api(details.end_time_str)
