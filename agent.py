@@ -1,15 +1,14 @@
 import os
 import uuid
 import asyncio
-from typing import Any, List, Dict
+from typing import Any
 from dotenv import load_dotenv
 
 from prompts import calendar_agent_prompt
-from tools import schedule_event, reschedule_event, cancel_event, list_event
+from tools import create_event, change_event, cancel_event, list_event
 
 from pydantic_ai import Agent
-from pydantic_ai.models.test import TestModel
-from pydantic_ai.tools import Tool, ToolDefinition
+from pydantic_ai.messages import ToolCallPart
 from supabase import create_client, Client
 
 load_dotenv()
@@ -32,14 +31,12 @@ def insert_to_db(user_input: str, agent_output: str):
     except Exception as e:
         print(f"Error inserting to Supabase: {e}")
 
-# Initialize the test model for logging tool calls
-test_model = TestModel()
 
-# Initialize Agent with the test model
+# Initialize Agent
 calendar_agent = Agent(
-    test_model,
+    'openai:gpt-4o',
     system_prompt=calendar_agent_prompt,
-    tools=[schedule_event, reschedule_event, cancel_event, list_event]
+    tools=[create_event, change_event, cancel_event, list_event]
     )
 
 async def process_chat(user_input: str, current_history = Any | None) -> Any | None:
@@ -52,8 +49,16 @@ async def process_chat(user_input: str, current_history = Any | None) -> Any | N
     print(agent_output.output)
     
     # Print the tool calls that were made
-    print("\nTool calls made:")
-    print(test_model.last_model_request_parameters.function_tools)
+    tool_calls_made = False
+    for message in agent_output.new_messages():
+        for part in message.parts:
+            if isinstance(part, ToolCallPart):
+                if not tool_calls_made:
+                    print("\nTool calls made:")
+                    tool_calls_made = True
+                print(f"  Tool: {part.tool_name}, Args: {part.args}")
+    if not tool_calls_made:
+        print("\nNo tool calls were made.")
     
     return chat_history
 
@@ -64,4 +69,3 @@ if __name__ == '__main__':
     while True:
         user_input = input("-> ")
         asyncio.run(process_chat(user_input, chat_history))
-        # I want to schedule an appointment tomorrow for 1pm with Dr. Kohan for tooth pain.
