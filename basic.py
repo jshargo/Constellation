@@ -5,6 +5,7 @@ from typing import Any
 from dotenv import load_dotenv
 
 from prompts import calendar_agent_prompt
+from tools import schedule_event, reschedule_event, cancel_event, list_event
 
 from pydantic_ai import Agent
 from supabase import create_client, Client
@@ -18,7 +19,6 @@ supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 # Generate a single chat_id for the entire session
 SESSION_CHAT_ID = str(uuid.uuid4())
 chat_history: Any | None = None 
-
     
 def insert_to_db(user_input: str, agent_output: str):
     try:
@@ -33,9 +33,9 @@ def insert_to_db(user_input: str, agent_output: str):
 # Initialize Agent
 calendar_agent = Agent(
     'openai:gpt-4o', 
-    system_prompt=calendar_agent_prompt
+    system_prompt=calendar_agent_prompt,
+    tools=[schedule_event, reschedule_event, cancel_event, list_event]
     )
-
 
 async def process_chat(user_input: str, current_history = Any | None) -> Any | None:
     global chat_history
