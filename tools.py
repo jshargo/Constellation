@@ -16,7 +16,7 @@ CALENDAR_API_NAME = 'calendar'
 CALENDAR_API_VERSION = 'v3'
 CALENDAR_SCOPES = ['https://www.googleapis.com/auth/calendar'] 
 
-# --- Utility Function for Date Parsing (enhanced) ---
+# Function for Date Parsing 
 def parse_datetime_for_api(datetime_str: str, default_time: Optional[time] = None, prefer_future: bool = True) -> Optional[str]:
     """
     Parses a datetime string into a timezone-aware ISO 8601 string suitable for Google Calendar API.
@@ -73,7 +73,7 @@ def create_event(details: CalendarEventInput) -> str:
         end_dt = start_dt + timedelta(minutes=details.duration_minutes)
         end_iso = end_dt.isoformat()
     else:
-        end_dt = start_dt + timedelta(minutes=60) # Default to 1 hour
+        end_dt = start_dt + timedelta(minutes=60) 
         end_iso = end_dt.isoformat()
 
     if end_dt <= start_dt:
@@ -97,7 +97,7 @@ def create_event(details: CalendarEventInput) -> str:
     except Exception as e:
         return f"An unexpected error occurred while creating event: {str(e)}"
 
-# --- Tool for Listing/Finding Calendar Events ---
+# Tool for Listing/Finding Calendar Events 
 class ListEventsInput(BaseModel):
     time_min_str: Optional[str] = Field(None, description="The start of the date/time range to search (e.g., 'today', 'tomorrow at 9am', '2025-06-01'). If only a date, assumes start of day. Defaults to now if not set.")
     time_max_str: Optional[str] = Field(None, description="The end of the date/time range to search (e.g., 'end of today', 'next Monday at 5pm', '2025-06-07'). If only a date, assumes end of day.")
@@ -118,18 +118,17 @@ def list_event(details: ListEventsInput) -> str:
 
     time_min_iso = None
     if details.time_min_str:
-        time_min_iso = parse_datetime_for_api(details.time_min_str, default_time=time.min) # Default to start of day
-    else: # Default to current time if no min_time specified (for upcoming events)
+        time_min_iso = parse_datetime_for_api(details.time_min_str, default_time=time.min) 
+    else:
         time_min_iso = datetime.now(gettz()).isoformat()
 
 
     time_max_iso = None
     if details.time_max_str:
-        time_max_iso = parse_datetime_for_api(details.time_max_str, default_time=time.max) # Default to end of day
+        time_max_iso = parse_datetime_for_api(details.time_max_str, default_time=time.max) 
     
     if not time_min_iso: # Should not happen if default works, but as a safeguard
         return "Could not parse time_min_str. Please provide a valid start date/time."
-    # time_max is optional for the API if you want all future events from time_min
 
     try:
         events_result = service.events().list(
@@ -137,7 +136,7 @@ def list_event(details: ListEventsInput) -> str:
             timeMin=time_min_iso,
             timeMax=time_max_iso,
             q=details.search_query,
-            maxResults=min(details.max_results, 250), # API max is higher but 250 is a lot for an LLM
+            maxResults=min(details.max_results, 250), 
             singleEvents=True,
             orderBy='startTime'
         ).execute()
@@ -148,13 +147,12 @@ def list_event(details: ListEventsInput) -> str:
 
         event_list_str = "Found events:\n"
         for item in items:
-            start = item['start'].get('dateTime', item['start'].get('date')) # dateTime for timed, date for all-day
-            # Format start time for readability
+            start = item['start'].get('dateTime', item['start'].get('date')) 
             try:
                 start_dt = dateutil.parser.isoparse(start)
                 formatted_start = start_dt.strftime('%Y-%m-%d %I:%M %p %Z') if start_dt.time() != time.min else start_dt.strftime('%Y-%m-%d (All-day)')
             except:
-                formatted_start = start # Fallback
+                formatted_start = start
             event_list_str += f"- '{item.get('summary', 'No Title')}' on {formatted_start} (ID: {item['id']})\n"
         
         if events_result.get('nextPageToken'):
@@ -166,7 +164,7 @@ def list_event(details: ListEventsInput) -> str:
     except Exception as e:
         return f"An unexpected error occurred while listing events: {str(e)}"
 
-# --- Tool for Updating/Editing/Rescheduling Calendar Events ---
+# Tool for Updating/Editing/Rescheduling Calendar Events
 class UpdateEventInput(BaseModel):
     event_id: str = Field(..., description="The unique ID of the event to update. This ID MUST be obtained first, e.g., by using 'list_calendar_events'.")
     new_summary: Optional[str] = Field(None, description="The new title for the event. If None, summary is unchanged.")
@@ -190,7 +188,6 @@ def change_event(details: UpdateEventInput) -> str:
         return "Failed to connect to Google Calendar service."
 
     try:
-        # Get the existing event to access its current properties if needed (e.g. for duration calculation)
         event_to_update = service.events().get(calendarId='primary', eventId=details.event_id).execute()
         if not event_to_update:
             return f"Event with ID '{details.event_id}' not found."
@@ -199,12 +196,11 @@ def change_event(details: UpdateEventInput) -> str:
 
         if details.new_summary is not None:
             update_body['summary'] = details.new_summary
-        if details.new_description is not None: # Empty string clears, None leaves unchanged
+        if details.new_description is not None:
             update_body['description'] = details.new_description
-        if details.new_location is not None: # Empty string clears, None leaves unchanged
+        if details.new_location is not None:
             update_body['location'] = details.new_location
 
-        # Handle time updates
         current_start_dt = dateutil.parser.isoparse(event_to_update['start'].get('dateTime', event_to_update['start'].get('date')))
         current_end_dt = dateutil.parser.isoparse(event_to_update['end'].get('dateTime', event_to_update['end'].get('date')))
         
@@ -217,7 +213,6 @@ def change_event(details: UpdateEventInput) -> str:
                 return f"Could not parse new_start_time_str: '{details.new_start_time_str}'"
             update_body['start'] = {'dateTime': new_start_iso}
             
-            # Determine new end time
             new_start_dt = dateutil.parser.isoparse(new_start_iso)
             if details.new_end_time_str:
                 new_end_iso = parse_datetime_for_api(details.new_end_time_str)
@@ -227,7 +222,7 @@ def change_event(details: UpdateEventInput) -> str:
                 if details.new_duration_minutes <= 0: return "New duration must be positive."
                 new_end_dt = new_start_dt + timedelta(minutes=details.new_duration_minutes)
                 new_end_iso = new_end_dt.isoformat()
-            else: # Keep original duration if only start time changes and no new end/duration
+            else: 
                 original_duration = current_end_dt - current_start_dt
                 new_end_dt = new_start_dt + original_duration
                 new_end_iso = new_end_dt.isoformat()
@@ -238,16 +233,14 @@ def change_event(details: UpdateEventInput) -> str:
                  return f"The event's new end time ({new_end_iso}) must be after its new start time ({new_start_iso})."
 
         elif details.new_end_time_str or details.new_duration_minutes:
-            # If only end time or duration is changing, but not start time explicitly.
-            # This implies the start time is the current event's start time.
             new_start_dt_for_calc = current_start_dt
-            update_body['start'] = {'dateTime': new_start_dt_for_calc.isoformat()} # Keep start time same unless specified
+            update_body['start'] = {'dateTime': new_start_dt_for_calc.isoformat()} 
 
             if details.new_end_time_str:
                 new_end_iso = parse_datetime_for_api(details.new_end_time_str)
                 if not new_end_iso:
                     return f"Could not parse new_end_time_str: '{details.new_end_time_str}'"
-            elif details.new_duration_minutes: # Must be duration if end_time_str is not given but start time is implicitly same
+            elif details.new_duration_minutes: 
                  if details.new_duration_minutes <= 0: return "New duration must be positive."
                  new_end_dt = new_start_dt_for_calc + timedelta(minutes=details.new_duration_minutes)
                  new_end_iso = new_end_dt.isoformat()
@@ -299,7 +292,6 @@ def cancel_event(details: CancelEventInput) -> str:
     except Exception as e:
         return f"An unexpected error occurred while canceling event: {str(e)}"
 
-# --- Dynamically update docstrings with current date for LLM context ---
 _current_date_str = datetime.now(gettz()).strftime("%Y-%m-%d, %A, %I:%M %p %Z")
 create_event.__doc__ = (create_event.__doc__ or "").format(current_date_for_llm_context=_current_date_str)
 list_event.__doc__ = (list_event.__doc__ or "").format(current_date_for_llm_context=_current_date_str)
