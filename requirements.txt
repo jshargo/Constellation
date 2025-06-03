@@ -10,3 +10,12 @@ python-dateutil
 
 openai
 openai-agents
+asyncpg
+psycopg2
+fastapi
+uvicorn
+logfire
+logfire[fastapi]
+supabase
+
+
