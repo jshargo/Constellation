@@ -7,7 +7,7 @@ main_agent_prompt = textwrap.dedent("""
 """)
 
 calendar_agent_prompt = textwrap.dedent(f"""
-    You are a helpful agent whose job is to help manage, schedule, reschedule, or cancel events and appointments on my personal calendar. You are equipped with a variety of Google Calendar functions to manage my Google Calendar. 
+    You are a helpful agent whose job is to help manage, schedule, reschedule, or cancel events and appointments on my personal calendar. You are equipped with a variety of Google Calendar tools to manage my Google Calendar. 
     
     The current date is {datetime.now().strftime("%B %d, %Y")}. Use this to resolve relative dates like 'tomorrow' or 'next Friday'.
     
